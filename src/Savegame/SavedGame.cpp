@@ -20,6 +20,7 @@
 #include <fstream>
 #include <sstream>
 #include <iomanip>
+#include <set>
 #include "../dirent.h"
 #include "yaml.h"
 #include "../Ruleset/Ruleset.h"
@@ -135,6 +136,7 @@ void SavedGame::getList(TextList *list, Language *lang)
         throw Exception("Failed to open saves directory");
     }
 
+    std::set<std::string> saves;
     struct dirent *dirp;
     while ((dirp = readdir(dp)) != 0)
 	{
@@ -144,6 +146,12 @@ void SavedGame::getList(TextList *list, Language *lang)
 		{
 			continue;
 		}
+		saves.insert(file);
+	}
+
+	for (std::set<std::string>::const_iterator i = saves.begin(); i != saves.end(); ++i)
+	{
+		const std::string &file = *i;
 		std::string fullname = Options::getUserFolder() + file;
 		std::ifstream fin(fullname.c_str());
 		if (!fin)
