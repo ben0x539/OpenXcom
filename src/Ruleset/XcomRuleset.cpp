@@ -1017,12 +1017,6 @@ XcomRuleset::XcomRuleset() : Ruleset()
 	lp->setClipSize(26);
 	lp->setWeight(3);
 
-	RuleManufactureInfo *mlp = new RuleManufactureInfo("STR_LASER_PISTOL");
-	mlp->setCategory("STR_WEAPON");
-	mlp->setRequiredSpace(2);
-	mlp->setManufactureTime(300);
-	mlp->setManufactureCost(8000);
-
 	RuleItem *aa = new RuleItem("STR_ALIEN_ALLOYS");
 	aa->setSize(0.1f);
 	aa->setCost(650);
@@ -1034,12 +1028,6 @@ XcomRuleset::XcomRuleset() : Ruleset()
 	aa->setHitSound(19);
 	aa->setClipSize(26);
 	aa->setWeight(3);
-
-	RuleManufactureInfo *maa = new RuleManufactureInfo("STR_ALIEN_ALLOYS");
-	maa->setCategory("STR_EQUIPMENT");
-	maa->setRequiredSpace(2);
-	maa->setManufactureTime(300);
-	maa->setManufactureCost(8000);
 
 	RuleItem *pa = new RuleItem("STR_PERSONAL_ARMOR");
 	pa->setSize(0.1f);
@@ -1053,12 +1041,6 @@ XcomRuleset::XcomRuleset() : Ruleset()
 	pa->setClipSize(26);
 	pa->setWeight(3);
 
-	RuleManufactureInfo *mpa = new RuleManufactureInfo("STR_PERSONAL_ARMOR");
-	mpa->setCategory("STR_EQUIPMENT");
-	mpa->setRequiredSpace(2);
-	mpa->setManufactureTime(300);
-	mpa->setManufactureCost(8000);
-
 	RuleItem *lr = new RuleItem("STR_LASER_RIFLE");
 	lr->setSize(0.1f);
 	lr->setCost(70);
@@ -1070,12 +1052,6 @@ XcomRuleset::XcomRuleset() : Ruleset()
 	lr->setHitSound(19);
 	lr->setClipSize(26);
 	lr->setWeight(3);
-
-	RuleManufactureInfo *mlr = new RuleManufactureInfo("STR_LASER_RIFLE");
-	mlr->setCategory("STR_WEAPON");
-	mlr->setRequiredSpace(2);
-	mlr->setManufactureTime(300);
-	mlr->setManufactureCost(8000000);
 
 	_items.insert(std::pair<std::string, RuleItem*>("STR_STINGRAY_LAUNCHER", slauncher));
 	_items.insert(std::pair<std::string, RuleItem*>("STR_AVALANCHE_LAUNCHER", alauncher));
@@ -1112,10 +1088,6 @@ XcomRuleset::XcomRuleset() : Ruleset()
 	_items.insert(std::pair<std::string, RuleItem*>("STR_LASER_PISTOL", lp));
 	_items.insert(std::pair<std::string, RuleItem*>("STR_PERSONAL_ARMOR", pa));
 	_items.insert(std::pair<std::string, RuleItem*>("STR_LASER_RIFLE", lr));
-	_manufacture.insert(std::pair<std::string, RuleManufactureInfo*>("STR_ALIEN_ALLOYS", maa));
-	_manufacture.insert(std::pair<std::string, RuleManufactureInfo*>("STR_LASER_PISTOL", mlp));
-	_manufacture.insert(std::pair<std::string, RuleManufactureInfo*>("STR_PERSONAL_ARMOR", mpa));
-	_manufacture.insert(std::pair<std::string, RuleManufactureInfo*>("STR_LASER_RIFLE", mlr));
 
 	// Add UFOs
 	RuleUfo *sscout = new RuleUfo("STR_SMALL_SCOUT");
@@ -1993,6 +1965,49 @@ XcomRuleset::XcomRuleset() : Ruleset()
 				}
 			}
 		  }
+	}
+
+	loadManufacture();
+}
+
+void XcomRuleset::loadManufacture()
+{
+	// Add manufacturing
+	std::string manufactureDatFile("manufacture.dat");
+	std::ifstream fin(CrossPlatform::getDataFile(manufactureDatFile).c_str());
+	YAML::Parser parser(fin);
+	YAML::Node doc;
+
+	while(parser.GetNextDocument(doc))
+	{
+		for(YAML::Iterator it=doc.begin();it!=doc.end();++it)
+		{
+			std::string name;
+			std::string category;
+			int cost;
+			int space;
+			int time;
+			(*it)["name"] >> name;
+			(*it)["category"] >> category;
+			(*it)["cost"] >> cost;
+			(*it)["space"] >> space;
+			(*it)["time"] >> time;
+			std::auto_ptr<RuleManufactureInfo> r(new RuleManufactureInfo(name));
+			r->setCategory(category);
+			r->setManufactureCost(cost);
+			r->setRequiredSpace(space);
+			r->setManufactureTime(time);
+			const YAML::Node& prereqs = (*it)["requirements"];
+			for(YAML::Iterator iter=prereqs.begin(); iter!=prereqs.end(); ++iter)
+			{
+				std::string type;
+				int quantity;
+				(*iter)["type"] >> type;
+				(*iter)["quantity"] >> quantity;
+				r->addNeededItem(type, quantity);
+			}
+			_manufacture.insert(std::make_pair(name, r.release()));
+		}
 	}
 }
 
